@@ -1,11 +1,19 @@
 from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
 from selenium import webdriver
 
+START_PAGE = 1
+END_PAGE = 10
+
 package_page_link_list = []
 github_link_list = []
 lib_link_list = []
 dart_file_link_list = []
 dart_file_raw_text_list = []
+
+previous_links = []
+
+with open('source_code_links.txt', 'r') as file:
+    previous_links = file.readlines()
 
 
 def github_folder_traverse(page_link):
@@ -17,8 +25,9 @@ def github_folder_traverse(page_link):
     for link in links:
         url = link.get_attribute("href")
         if url.endswith('.dart'):
-            dart_file_link_list.append(url)
-        else:
+            if url not in previous_links:
+                dart_file_link_list.append(url)
+        elif '.' not in url:
             temp_links.append(url)
 
     for link in temp_links:
@@ -29,7 +38,7 @@ def github_folder_traverse(page_link):
 
 browser = webdriver.Chrome(executable_path='./chromedriver')
 
-for i in range(1, 11):
+for i in range(START_PAGE, END_PAGE + 1):
     browser.get(f'https://pub.dev/packages?sort=popularity&page={i}')
     for package in browser.find_elements_by_css_selector(".packages-title a"):
         package_page_link_list.append(package.get_attribute("href"))
@@ -55,6 +64,11 @@ for lib_link in lib_link_list:
 for file_link in dart_file_link_list:
     browser.get(file_link)
     dart_file_raw_text_list.append(browser.find_element_by_id("raw-url").get_attribute("href"))
+
+with open("source_code_links.txt", "a") as file:
+    for file_link in dart_file_link_list:
+        file.write(file_link)
+        file.write("\n")
 
 with open("source_code.txt", "a") as file:
     for source_code_link in dart_file_raw_text_list:
